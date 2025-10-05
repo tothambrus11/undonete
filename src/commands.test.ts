@@ -5,7 +5,7 @@ import {
   type CommandTypeRegistry,
   LinearCommandManager,
 } from "./commands.ts";
-import { expect } from "jsr:@std/expect";
+import { expect } from "jsr:@std/expect@1.0.17";
 
 export interface Rectange {
   x: number;
@@ -86,7 +86,7 @@ export const paintCommandTypeRegistry = {
   addCircle: addCircleCommandHandler,
 } as const satisfies CommandTypeRegistry<PaintModel, string>;
 
-Deno.test("can create command", (t) => {
+Deno.test("can create command", () => {
   const paintModelCommandManager = new LinearCommandManager<PaintModel, string, typeof paintCommandTypeRegistry>(paintCommandTypeRegistry);
   const paintModel = new PaintModel();
 
