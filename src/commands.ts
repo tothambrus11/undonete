@@ -9,7 +9,7 @@ export type CommandExecutionResult<T> = {
 };
 
 /// Extracts the type T from a given type that extends Result<T>.
-export type SuccessTypeOfResult<T extends CommandExecutionResult<any>> = T extends { success: true; result: infer U } ? U : never;
+export type SuccessTypeOfResult<T extends CommandExecutionResult<unknown>> = T extends { success: true; result: infer U } ? U : never;
 
 export type CommandHandlerWithoutExecutionResult<
   Model,
@@ -48,25 +48,33 @@ export type CommandHandlerWithExecutionResult<
 
 export type AnyCommandHandler<Model, Instruction> =
   | CommandHandlerWithoutExecutionResult<Model, Instruction>
-  | CommandHandlerWithExecutionResult<Model, Instruction, any>;
+  | CommandHandlerWithExecutionResult<Model, Instruction, unknown>;
 
 export type CommandTypeRegistry<Model, PossibleKeys extends string> = {
-  [key in PossibleKeys]: AnyCommandHandler<Model, any>;
+  [key in PossibleKeys]: unknown;
 };
 
 export type ExecutionResultOf<
   Model,
   PossibleKeys extends string,
-  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
+  Registry,
   CommandType extends keyof Registry,
-> = SuccessTypeOfResult<ReturnType<Registry[CommandType]["execute"]>>;
+> = Registry[CommandType] extends {
+  execute: (...args: unknown[]) => CommandExecutionResult<infer ER>;
+}
+  ? ER
+  : never;
 
 export type InstructionOf<
   Model,
   PossibleKeys extends string,
-  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
+  Registry,
   CommandType extends keyof Registry,
-> = Parameters<Registry[CommandType]["execute"]>[1];
+> = Registry[CommandType] extends {
+  execute: (model: Model, instruction: infer I, ...rest: unknown[]) => unknown;
+}
+  ? I
+  : never;
 
 export interface DoneCommand<ExecutionResult> {
   commandType: ExecutionResult;
@@ -114,12 +122,15 @@ export class LinearCommandManager<
       ConcreteCommandTypeRegistry,
       ConcreteCommandType
     >,
+    Handler extends ConcreteCommandTypeRegistry[ConcreteCommandType] & {
+      execute: (model: Model, instruction: ConcreteInstruction) => CommandExecutionResult<unknown>;
+    },
   >(
     commandType: ConcreteCommandType,
     command: ConcreteInstruction,
     model: Model,
   ): void {
-    const commandHandler = this.commandTypeRegistry[commandType];
+    const commandHandler: Handler = this.commandTypeRegistry[commandType] as unknown as Handler;
     commandHandler.execute(model, command);
   }
 
@@ -136,17 +147,32 @@ export class LinearCommandManager<
       ) => void;
     };
 
-    return new Proxy({} as Commands, {
-      get: (
-        _target,
-        commandType: string,
-      ) => ((instruction: any, model: Model) => {
-        this.executeCommand(
-          commandType as keyof ConcreteCommandTypeRegistry,
-          instruction,
-          model,
-        );
-      }),
-    });
+    // Build a concrete commands object at runtime by creating typed closures
+    // for each key. We use a typed helper makeCommand so each closure captures
+    // the specific key `k` as a type parameter, avoiding unsafe casts when
+    // calling `executeCommand`.
+    const commands = {} as Commands;
+    const keys = Object.keys(this.commandTypeRegistry) as Array<keyof ConcreteCommandTypeRegistry>;
+    for (const k of keys) {
+      commands[k] = this.makeCommand(k);
+    }
+
+    return commands;
+  }
+
+  private makeCommand<CT extends keyof ConcreteCommandTypeRegistry>(
+    commandType: CT,
+  ): (
+    instruction: InstructionOf<
+      Model,
+      PossibleKeys,
+      ConcreteCommandTypeRegistry,
+      CT
+    >,
+    model: Model,
+  ) => void {
+    return (instruction, model) => {
+      this.executeCommand(commandType, instruction, model);
+    };
   }
 }
