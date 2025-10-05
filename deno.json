@@ -1,0 +1,22 @@
+{
+  "name": "@ambrus-toth/undonete",
+  "version": "0.0.1",
+  "license": "MIT",
+  "exports": "./src/index.ts",
+  "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@^0.42.3",
+    "expect-type": "npm:expect-type@^1.2.2"
+  },
+  "tasks": {
+    "test": "deno test",
+    "lint": "deno lint",
+    "fmt": "deno fmt"
+  },
+  "fmt": {
+    "lineWidth": 160
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.unstable", "dom"],
+    "strict": true
+  }
+}
