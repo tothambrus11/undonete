@@ -18,7 +18,6 @@ await build({
     name: "@ambrus-toth/undonete",
     version: Deno.args[0],
     description: "MailerLite SDK supporting multiple runtimes",
-    license: "MIT",
     repository: {
       type: "git",
       url: "git+https://github.com/tothambrus11/undonete.git",
@@ -29,7 +28,6 @@ await build({
   },
   postBuild() {
     // steps to run after building and before running the tests
-    Deno.copyFileSync("LICENSE", "npm/LICENSE");
     Deno.copyFileSync("README.md", "npm/README.md");
   },
 });
