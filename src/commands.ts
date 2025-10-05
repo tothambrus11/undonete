@@ -116,7 +116,7 @@ export class LinearCommandManager<
   }
 
   /**
-   * Tries executing the given instruction on the model, using the commandTypeRegistry for actually performing the command.  
+   * Tries executing the given instruction on the model, using the commandTypeRegistry for actually performing the command.
    */
   executeCommand<
     ConcreteCommandType extends keyof ConcreteCommandTypeRegistry & string,
