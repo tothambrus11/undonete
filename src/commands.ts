@@ -61,7 +61,14 @@ export type ExecutionResultOf<
   PossibleKeys extends string,
   Registry extends CommandTypeRegistry<Model, PossibleKeys>,
   CommandType extends keyof Registry,
-> = SuccessTypeOfResult<ReturnType<Registry[CommandType]["execute"]>>;
+> = ReturnType<Registry[CommandType]["execute"]>;
+
+export type SuccessfulExecutionResultOf<
+  Model,
+  PossibleKeys extends string,
+  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
+  CommandType extends keyof Registry,
+> = SuccessTypeOfResult<ExecutionResultOf<Model, PossibleKeys, Registry, CommandType>>;
 
 export type InstructionOf<
   Model,
@@ -70,8 +77,20 @@ export type InstructionOf<
   CommandType extends keyof Registry,
 > = Parameters<Registry[CommandType]["execute"]>[1];
 
-export interface DoneCommand<ExecutionResult> {
-  commandType: ExecutionResult;
+export interface SpecificDoneCommand<
+  Model,
+  PossibleKeys extends string,
+  ConcreteCommandTypeRegistry extends CommandTypeRegistry<
+    Model,
+    PossibleKeys
+  >,
+  SpecificCommandType extends keyof ConcreteCommandTypeRegistry,
+> {
+  commandType: SpecificCommandType;
+  instruction: InstructionOf<Model, keyof ConcreteCommandTypeRegistry & string, ConcreteCommandTypeRegistry, SpecificCommandType>;
+  executionResult: SuccessfulExecutionResultOf<Model, keyof ConcreteCommandTypeRegistry & string, ConcreteCommandTypeRegistry, SpecificCommandType> & {
+    success: true;
+  };
 }
 
 export class LinearCommandManager<
@@ -82,23 +101,8 @@ export class LinearCommandManager<
     PossibleKeys
   >,
 > {
-  private undoStack: DoneCommand<
-    ExecutionResultOf<
-      Model,
-      PossibleKeys,
-      ConcreteCommandTypeRegistry,
-      keyof ConcreteCommandTypeRegistry
-    >
-  >[] = [];
-
-  private redoStack: DoneCommand<
-    ExecutionResultOf<
-      Model,
-      PossibleKeys,
-      ConcreteCommandTypeRegistry,
-      keyof ConcreteCommandTypeRegistry
-    >
-  >[] = [];
+  private undoStack: SpecificDoneCommand<Model, PossibleKeys, ConcreteCommandTypeRegistry, keyof ConcreteCommandTypeRegistry>[] = [];
+  private redoStack: SpecificDoneCommand<Model, PossibleKeys, ConcreteCommandTypeRegistry, keyof ConcreteCommandTypeRegistry>[] = [];
 
   private readonly commandTypeRegistry: ConcreteCommandTypeRegistry;
 
@@ -109,7 +113,7 @@ export class LinearCommandManager<
   }
 
   executeCommand<
-    ConcreteCommandType extends keyof ConcreteCommandTypeRegistry,
+    ConcreteCommandType extends keyof ConcreteCommandTypeRegistry & string,
     ConcreteInstruction extends InstructionOf<
       Model,
       PossibleKeys,
@@ -118,11 +122,26 @@ export class LinearCommandManager<
     >,
   >(
     commandType: ConcreteCommandType,
-    command: ConcreteInstruction,
+    instruction: ConcreteInstruction,
     model: Model,
-  ): void {
+  ): ReturnType<ConcreteCommandTypeRegistry[ConcreteCommandType]['execute']>{
     const commandHandler = this.commandTypeRegistry[commandType];
-    commandHandler.execute(model, command);
+    const result = commandHandler.execute(model, instruction);
+    if (!result.success) {
+      // deno-lint-ignore no-explicit-any
+      return result as any;
+    }
+
+    this.clearRedoStack();
+    // deno-lint-ignore no-explicit-any
+    this.undoStack.push({ commandType: commandType, instruction: instruction, executionResult: result.result as any});
+
+    // deno-lint-ignore no-explicit-any
+    return result as any;
+  }
+  
+  private clearRedoStack() {
+    this.redoStack.splice(0, this.redoStack.length);
   }
 
   get commands() {
@@ -148,12 +167,12 @@ export class LinearCommandManager<
             Model,
             PossibleKeys,
             ConcreteCommandTypeRegistry,
-            keyof ConcreteCommandTypeRegistry
+            keyof ConcreteCommandTypeRegistry & string
           >,
           model: Model,
         ) => {
-          this.executeCommand(
-            commandType as keyof ConcreteCommandTypeRegistry,
+          return this.executeCommand(
+            commandType as keyof ConcreteCommandTypeRegistry & string,
             instruction,
             model,
           );
