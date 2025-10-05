@@ -124,7 +124,7 @@ export class LinearCommandManager<
     commandType: ConcreteCommandType,
     instruction: ConcreteInstruction,
     model: Model,
-  ): ReturnType<ConcreteCommandTypeRegistry[ConcreteCommandType]['execute']>{
+  ): ReturnType<ConcreteCommandTypeRegistry[ConcreteCommandType]["execute"]> {
     const commandHandler = this.commandTypeRegistry[commandType];
     const result = commandHandler.execute(model, instruction);
     if (!result.success) {
@@ -134,12 +134,12 @@ export class LinearCommandManager<
 
     this.clearRedoStack();
     // deno-lint-ignore no-explicit-any
-    this.undoStack.push({ commandType: commandType, instruction: instruction, executionResult: result.result as any});
+    this.undoStack.push({ commandType: commandType, instruction: instruction, executionResult: result.result as any });
 
     // deno-lint-ignore no-explicit-any
     return result as any;
   }
-  
+
   private clearRedoStack() {
     this.redoStack.splice(0, this.redoStack.length);
   }

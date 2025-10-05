@@ -7,7 +7,6 @@ import {
 } from "./commands.ts";
 import { expect } from "jsr:@std/expect";
 
-
 export interface Rectange {
   x: number;
   y: number;
@@ -91,6 +90,9 @@ Deno.test("can create command", (t) => {
   const paintModelCommandManager = new LinearCommandManager<PaintModel, string, typeof paintCommandTypeRegistry>(paintCommandTypeRegistry);
   const paintModel = new PaintModel();
 
-  expect(paintModelCommandManager.commands.addRectangle({ rectangleToAdd: { x: 100, y: 100, width: 50, height: 50 } }, paintModel)).toEqual({ success: true, result: undefined });
+  expect(paintModelCommandManager.commands.addRectangle({ rectangleToAdd: { x: 100, y: 100, width: 50, height: 50 } }, paintModel)).toEqual({
+    success: true,
+    result: undefined,
+  });
   expect(paintModelCommandManager.commands.addCircle({ circleToAdd: { x: 75, y: 75, radius: 10 } }, paintModel)).toEqual({ success: true, result: undefined });
 });
