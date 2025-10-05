@@ -93,6 +93,9 @@ export interface SpecificDoneCommand<
   };
 }
 
+/**
+ * A command manager that supports linear undo/redo.
+ */
 export class LinearCommandManager<
   Model,
   PossibleKeys extends string,
@@ -112,6 +115,9 @@ export class LinearCommandManager<
     this.commandTypeRegistry = commandTypeRegistry;
   }
 
+  /**
+   * Tries executing the given instruction on the model, using the commandTypeRegistry for actually performing the command.  
+   */
   executeCommand<
     ConcreteCommandType extends keyof ConcreteCommandTypeRegistry & string,
     ConcreteInstruction extends InstructionOf<
@@ -132,9 +138,12 @@ export class LinearCommandManager<
       return result as any;
     }
 
-    this.clearRedoStack();
-    // deno-lint-ignore no-explicit-any
-    this.undoStack.push({ commandType: commandType, instruction: instruction, executionResult: result.result as any });
+    // Only save the command if it had effect
+    if (result.hadEffect || result.hadEffect === undefined) {
+      this.clearRedoStack();
+      // deno-lint-ignore no-explicit-any
+      this.undoStack.push({ commandType: commandType, instruction: instruction, executionResult: result.result as any });
+    }
 
     // deno-lint-ignore no-explicit-any
     return result as any;
