@@ -9,7 +9,7 @@ export type CommandExecutionResult<T> = {
 };
 
 /// Extracts the type T from a given type that extends Result<T>.
-export type SuccessTypeOfResult<T extends CommandExecutionResult<any>> = T extends { success: true; result: infer U } ? U : never;
+export type SuccessTypeOfResult<T extends CommandExecutionResult<unknown>> = T extends { success: true; result: infer U } ? U : never;
 
 export type CommandHandlerWithoutExecutionResult<
   Model,
@@ -46,12 +46,14 @@ export type CommandHandlerWithExecutionResult<
   }) => void;
 };
 
-export type AnyCommandHandler<Model, Instruction> =
-  | CommandHandlerWithoutExecutionResult<Model, Instruction>
-  | CommandHandlerWithExecutionResult<Model, Instruction, any>;
+export type AnyCommandHandler<Model> =
+  // deno-lint-ignore no-explicit-any
+  | CommandHandlerWithoutExecutionResult<Model, any>
+  // deno-lint-ignore no-explicit-any
+  | CommandHandlerWithExecutionResult<Model, any, any>;
 
 export type CommandTypeRegistry<Model, PossibleKeys extends string> = {
-  [key in PossibleKeys]: AnyCommandHandler<Model, any>;
+  [key in PossibleKeys]: AnyCommandHandler<Model>;
 };
 
 export type ExecutionResultOf<
@@ -138,15 +140,25 @@ export class LinearCommandManager<
 
     return new Proxy({} as Commands, {
       get: (
-        _target,
-        commandType: string,
-      ) => ((instruction: any, model: Model) => {
-        this.executeCommand(
-          commandType as keyof ConcreteCommandTypeRegistry,
-          instruction,
-          model,
-        );
-      }),
+        _target: Commands,
+        commandType: string | symbol,
+      ) => {
+        return ((
+          instruction: InstructionOf<
+            Model,
+            PossibleKeys,
+            ConcreteCommandTypeRegistry,
+            keyof ConcreteCommandTypeRegistry
+          >,
+          model: Model,
+        ) => {
+          this.executeCommand(
+            commandType as keyof ConcreteCommandTypeRegistry,
+            instruction,
+            model,
+          );
+        }) as Commands[keyof Commands];
+      },
     });
   }
 }
