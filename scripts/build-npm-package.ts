@@ -17,7 +17,7 @@ await build({
     // package.json properties
     name: "@ambrus-toth/undonete",
     version: Deno.args[0],
-    description: "MailerLite SDK supporting multiple runtimes",
+    description: "Type-safe undo/redo library",
     repository: {
       type: "git",
       url: "git+https://github.com/tothambrus11/undonete.git",
