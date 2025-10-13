@@ -84,6 +84,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno/dnt@~0.42.3",
+      "jsr:@std/expect@1.0.17",
       "npm:expect-type@^1.2.2"
     ]
   }

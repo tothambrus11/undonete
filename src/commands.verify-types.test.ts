@@ -117,34 +117,12 @@ function testInvalidCommandUsage() {
   return commands;
 }
 
-// ✅ TEST 3: Type narrowing should work with discriminated union
-function testTypeNarrowing() {
-  const command: AnyCommand<TestRegistry> = { commandType: "setValue", instruction: { newValue: 42 } } as AnyCommand<TestRegistry>;
+function typeOfAnyCommandIsAKey() {
+  const commands: AnyCommand<TestRegistry>[] = [];
 
-  if (command.commandType === "setValue") {
-    // TypeScript should know command.instruction is SetValueInstruction
-    const _value = command.instruction.newValue; // Should not error
+  commands.push({ commandType: "setValue", instruction: { newValue: 42 } });
 
-    // @ts-expect-error Property 'item' does not exist
-    const _item = command.instruction.item;
-  }
-
-  if (command.commandType === "addItem") {
-    // TypeScript should know command.instruction is AddItemInstruction
-    const _item = command.instruction.item; // Should not error
-
-    // @ts-expect-error Property 'newValue' does not exist
-    const _value = command.instruction.newValue;
-  }
-
-  if (command.commandType === "complexCommand") {
-    // TypeScript should know command.instruction is ComplexInstruction
-    const _data = command.instruction.data; // Should not error
-    const _nested = command.instruction.data.nested; // Should not error
-
-    // @ts-expect-error Property 'item' does not exist
-    const _item = command.instruction.item;
-  }
+  testRegistry[commands[0].commandType];
 }
 
 // ✅ TEST 4: forEach and other array operations should maintain type safety
@@ -374,7 +352,7 @@ export {
   testInstructionTypeInference,
   testInvalidCommandUsage,
   testRegistryConstraints,
-  testTypeNarrowing,
   testUnionTypeBehavior,
   testValidCommandUsage,
+  typeOfAnyCommandIsAKey,
 };

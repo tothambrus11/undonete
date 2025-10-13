@@ -168,6 +168,28 @@ export class LinearCommandManager<
     return result as ExecutionResultOf<Model, PossibleKeys, ConcreteCommandTypeRegistry, ConcreteCommandType>;
   }
 
+  /// Returns whether there was a command to undo
+  undo(model: Model): boolean {
+    const command = this.undoStack.pop();
+    if (!command) return false;
+
+    const commandHandler = this.commandTypeRegistry[command.commandType as keyof ConcreteCommandTypeRegistry];
+    commandHandler.undo({ model, instruction: command.instruction, executionResult: command.executionResult });
+    this.redoStack.push(command);
+    return true;
+  }
+
+  /// Returns whether there was a command to redo
+  redo(model: Model): boolean {
+    const command = this.redoStack.pop();
+    if (!command) return false;
+
+    const commandHandler = this.commandTypeRegistry[command.commandType as keyof ConcreteCommandTypeRegistry];
+    commandHandler.redo({ model, instruction: command.instruction, executionResult: command.executionResult });
+    this.undoStack.push(command);
+    return true;
+  }
+
   private clearRedoStack() {
     this.redoStack.splice(0, this.redoStack.length);
   }
