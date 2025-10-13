@@ -5,7 +5,7 @@ import {
   type CommandTypeRegistry,
   LinearCommandManager,
 } from "./commands.ts";
-import { expect } from "jsr:@std/expect@1.0.17";
+import { expect } from "@deno/std-expect";
 
 export interface Rectange {
   x: number;

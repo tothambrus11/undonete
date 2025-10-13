@@ -5,7 +5,8 @@
   "exports": "./src/index.ts",
   "imports": {
     "@deno/dnt": "jsr:@deno/dnt@^0.42.3",
-    "expect-type": "npm:expect-type@^1.2.2"
+    "expect-type": "npm:expect-type@^1.2.2",
+    "@deno/std-expect": "jsr:@std/expect@1.0.17"
   },
   "tasks": {
     "test": "deno test",
