@@ -1,7 +1,7 @@
 import {
+  type AnyCommand,
   type CommandExecutionResult,
   type CommandHandlerWithExecutionResult,
-  type CommandHandlerWithoutExecutionResult,
   type CommandTypeRegistry,
   LinearCommandManager,
 } from "./commands.ts";
@@ -30,16 +30,20 @@ export interface AddRectangleInstruction {
   rectangleToAdd: Rectange;
 }
 
-const addRectangleCommandHandler: CommandHandlerWithoutExecutionResult<
+const addRectangleCommandHandler: CommandHandlerWithExecutionResult<
   PaintModel,
-  AddRectangleInstruction
+  AddRectangleInstruction,
+  void
 > = {
   execute: (model: PaintModel, instruction: AddRectangleInstruction): CommandExecutionResult<void> => {
     model.rectangles.push(instruction.rectangleToAdd);
     return { success: true, result: undefined };
   },
-  undo: (params) => {
-    params.model.rectangles.pop();
+  redo: ({ model, instruction }) => {
+    model.rectangles.push(instruction.rectangleToAdd);
+  },
+  undo: ({ model }) => {
+    model.rectangles.pop();
   },
 };
 
@@ -72,12 +76,16 @@ const addCircleCommandHandler = {
     model.circles.push(instruction.circleToAdd);
     return { success: true, result: undefined };
   },
-  undo: (params) => {
-    params.model.circles.pop();
+  undo: ({ model }) => {
+    model.circles.pop();
   },
-} as const satisfies CommandHandlerWithoutExecutionResult<
+  redo: ({ model, instruction }) => {
+    model.circles.push(instruction.circleToAdd);
+  },
+} as const satisfies CommandHandlerWithExecutionResult<
   PaintModel,
-  { circleToAdd: Circle }
+  { circleToAdd: Circle },
+  void
 >;
 
 export const paintCommandTypeRegistry = {
@@ -85,9 +93,10 @@ export const paintCommandTypeRegistry = {
   addRectangleWithResult: addRectangleCommandHandlerWithResult,
   addCircle: addCircleCommandHandler,
 } as const satisfies CommandTypeRegistry<PaintModel, string>;
+type PaintCommandTypeRegistry = typeof paintCommandTypeRegistry;
 
 Deno.test("can create command", () => {
-  const paintModelCommandManager = new LinearCommandManager<PaintModel, string, typeof paintCommandTypeRegistry>(paintCommandTypeRegistry);
+  const paintModelCommandManager = new LinearCommandManager<PaintModel, string, PaintCommandTypeRegistry>(paintCommandTypeRegistry);
   const paintModel = new PaintModel();
 
   expect(paintModelCommandManager.commands.addRectangle({ rectangleToAdd: { x: 100, y: 100, width: 50, height: 50 } }, paintModel)).toEqual({
@@ -95,4 +104,24 @@ Deno.test("can create command", () => {
     result: undefined,
   });
   expect(paintModelCommandManager.commands.addCircle({ circleToAdd: { x: 75, y: 75, radius: 10 } }, paintModel)).toEqual({ success: true, result: undefined });
+});
+
+Deno.test("can execute command", () => {
+  const paintModelCommandManager = new LinearCommandManager<PaintModel, string, PaintCommandTypeRegistry>(paintCommandTypeRegistry);
+  const paintModel = new PaintModel();
+
+  const commands: AnyCommand<PaintCommandTypeRegistry>[] = [
+    { commandType: "addRectangle", instruction: { rectangleToAdd: { x: 100, y: 100, width: 50, height: 50 } } },
+    { commandType: "addCircle", instruction: { circleToAdd: { x: 75, y: 75, radius: 10 } } },
+  ];
+
+  commands.push({ commandType: "addCircle", instruction: { circleToAdd: { x: 10, y: 10, radius: 5 } } });
+
+  for (const { commandType: commandName, instruction } of commands) {
+    const res = paintModelCommandManager.executeCommand(commandName, instruction, paintModel);
+    expect(res.success).toBe(true);
+  }
+
+  expect(paintModel.rectangles.length).toBe(1);
+  expect(paintModel.circles.length).toBe(2);
 });

@@ -5,6 +5,7 @@
     "jsr:@deno/dnt@~0.42.3": "0.42.3",
     "jsr:@std/assert@^1.0.14": "1.0.14",
     "jsr:@std/expect@*": "1.0.17",
+    "jsr:@std/expect@1.0.17": "1.0.17",
     "jsr:@std/fmt@1": "1.0.8",
     "jsr:@std/fs@1": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
@@ -12,7 +13,8 @@
     "jsr:@std/path@1": "1.1.2",
     "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
-    "jsr:@ts-morph/common@0.27": "0.27.0"
+    "jsr:@ts-morph/common@0.27": "0.27.0",
+    "npm:expect-type@^1.2.2": "1.2.2"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -72,6 +74,11 @@
         "jsr:@std/fs",
         "jsr:@std/path@1"
       ]
+    }
+  },
+  "npm": {
+    "expect-type@1.2.2": {
+      "integrity": "sha512-JhFGDVJ7tmDJItKhYgJCGLOWjuK9vPxiXoUFLwLDc99NlmklilbiQJwoctZtt13+xMw91MCk/REan6MWHqDjyA=="
     }
   },
   "workspace": {
