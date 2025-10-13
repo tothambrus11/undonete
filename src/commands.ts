@@ -39,27 +39,6 @@ export type CommandTypeRegistry<Model, PossibleKeys extends string> = {
   [key in PossibleKeys]: AnyCommandHandler<Model>;
 };
 
-export type ExecutionResultOf<
-  Model,
-  PossibleKeys extends string,
-  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
-  CommandType extends keyof Registry,
-> = ReturnType<Registry[CommandType]["execute"]>;
-
-export type SuccessfulExecutionResultOf<
-  Model,
-  PossibleKeys extends string,
-  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
-  CommandType extends keyof Registry,
-> = SuccessTypeOfResult<ExecutionResultOf<Model, PossibleKeys, Registry, CommandType>>;
-
-export type InstructionOf<
-  Model,
-  PossibleKeys extends string,
-  Registry extends CommandTypeRegistry<Model, PossibleKeys>,
-  CommandType extends keyof Registry,
-> = Parameters<Registry[CommandType]["execute"]>[1];
-
 // Utility type to extract Model and PossibleKeys from a Registry type
 export type ModelOf<Registry> = Registry extends CommandTypeRegistry<infer M, string> ? M : never;
 export type KeysOf<Registry> = Registry extends CommandTypeRegistry<unknown, infer K> ? K : never;
@@ -68,7 +47,7 @@ export type KeysOf<Registry> = Registry extends CommandTypeRegistry<unknown, inf
 export type AnyCommand<Registry> = Registry extends CommandTypeRegistry<infer Model, infer Keys> ? {
     [K in keyof Registry]: {
       commandType: K;
-      instruction: InstructionOf<Model, Keys, Registry, K>;
+      instruction: InstructionOf<Registry, K>;
     };
   }[keyof Registry]
   : never;
@@ -77,40 +56,23 @@ export type AnyCommand<Registry> = Registry extends CommandTypeRegistry<infer Mo
 export type AnyCommandWithResult<Registry> = Registry extends CommandTypeRegistry<infer Model, infer Keys> ? {
     [K in keyof Registry]: {
       commandType: K;
-      instruction: InstructionOf<Model, Keys, Registry, K>;
-      executionResult: SuccessfulExecutionResultOf<Model, Keys, Registry, K>;
+      instruction: InstructionOf<Registry, K>;
+      executionResult: SuccessfulExecutionResultOf<Registry, K>;
     };
   }[keyof Registry]
   : never;
 
-// Simplified versions using single generic parameter
-export type ExecutionResultOf_Simple<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer Model, infer Keys>
+export type ExecutionResultOf<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer _Model, infer _Keys>
   ? ReturnType<Registry[CommandType]["execute"]>
   : never;
 
-export type SuccessfulExecutionResultOf_Simple<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer Model, infer Keys>
-  ? SuccessTypeOfResult<ExecutionResultOf_Simple<Registry, CommandType>>
+export type SuccessfulExecutionResultOf<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer _Model, infer _Keys>
+  ? SuccessTypeOfResult<ExecutionResultOf<Registry, CommandType>>
   : never;
 
-export type InstructionOf_Simple<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer Model, infer Keys>
+export type InstructionOf<Registry, CommandType extends keyof Registry> = Registry extends CommandTypeRegistry<infer _Model, infer _Keys>
   ? Parameters<Registry[CommandType]["execute"]>[1]
   : never;
-
-export interface SpecificDoneCommand<
-  Model,
-  PossibleKeys extends string,
-  ConcreteCommandTypeRegistry extends CommandTypeRegistry<
-    Model,
-    PossibleKeys
-  >,
-  SpecificCommandType extends keyof ConcreteCommandTypeRegistry,
-> {
-  commandType: SpecificCommandType;
-  instruction: InstructionOf<Model, keyof ConcreteCommandTypeRegistry & string, ConcreteCommandTypeRegistry, SpecificCommandType>;
-  executionResult: SuccessfulExecutionResultOf<Model, keyof ConcreteCommandTypeRegistry & string, ConcreteCommandTypeRegistry, SpecificCommandType> & {
-    success: true;
-  };
-}
 
 /**
  * A command manager that supports linear undo/redo.
@@ -142,17 +104,15 @@ export class LinearCommandManager<
   >(
     commandType: ConcreteCommandType,
     instruction: InstructionOf<
-      Model,
-      PossibleKeys,
       ConcreteCommandTypeRegistry,
       ConcreteCommandType
     >,
     model: Model,
-  ): ExecutionResultOf<Model, PossibleKeys, ConcreteCommandTypeRegistry, ConcreteCommandType> {
+  ): ExecutionResultOf<ConcreteCommandTypeRegistry, ConcreteCommandType> {
     const commandHandler = this.commandTypeRegistry[commandType];
     const result = commandHandler.execute(model, instruction);
     if (!result.success) {
-      return result as ExecutionResultOf<Model, PossibleKeys, ConcreteCommandTypeRegistry, ConcreteCommandType>;
+      return result as ExecutionResultOf<ConcreteCommandTypeRegistry, ConcreteCommandType>;
     }
 
     // Only save the command if it had effect
@@ -165,7 +125,7 @@ export class LinearCommandManager<
       } as unknown as AnyCommandWithResult<ConcreteCommandTypeRegistry>);
     }
 
-    return result as ExecutionResultOf<Model, PossibleKeys, ConcreteCommandTypeRegistry, ConcreteCommandType>;
+    return result as ExecutionResultOf<ConcreteCommandTypeRegistry, ConcreteCommandType>;
   }
 
   /// Returns whether there was a command to undo
@@ -198,8 +158,6 @@ export class LinearCommandManager<
     type Commands = {
       [K in keyof ConcreteCommandTypeRegistry]: (
         instruction: InstructionOf<
-          Model,
-          PossibleKeys,
           ConcreteCommandTypeRegistry,
           K
         >,
@@ -214,8 +172,6 @@ export class LinearCommandManager<
       ) => {
         return ((
           instruction: InstructionOf<
-            Model,
-            PossibleKeys,
             ConcreteCommandTypeRegistry,
             keyof ConcreteCommandTypeRegistry & string
           >,

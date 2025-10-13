@@ -19,9 +19,9 @@ import type {
   AnyCommandWithResult,
   CommandExecutionResult,
   CommandTypeRegistry,
-  ExecutionResultOf_Simple,
-  InstructionOf_Simple,
-  SuccessfulExecutionResultOf_Simple,
+  ExecutionResultOf,
+  InstructionOf,
+  SuccessfulExecutionResultOf,
 } from "./commands.ts";
 
 // Test setup - creating a simple registry for testing
@@ -194,26 +194,26 @@ function testGenericFunction() {
 // Test A: Type inference for instruction types using expectTypeOf
 function testInstructionTypeInference() {
   // InstructionOf_Simple should correctly extract instruction types
-  expectTypeOf<InstructionOf_Simple<TestRegistry, "setValue">>().toEqualTypeOf<SetValueInstruction>();
-  expectTypeOf<InstructionOf_Simple<TestRegistry, "addItem">>().toEqualTypeOf<AddItemInstruction>();
-  expectTypeOf<InstructionOf_Simple<TestRegistry, "complexCommand">>().toEqualTypeOf<ComplexInstruction>();
+  expectTypeOf<InstructionOf<TestRegistry, "setValue">>().toEqualTypeOf<SetValueInstruction>();
+  expectTypeOf<InstructionOf<TestRegistry, "addItem">>().toEqualTypeOf<AddItemInstruction>();
+  expectTypeOf<InstructionOf<TestRegistry, "complexCommand">>().toEqualTypeOf<ComplexInstruction>();
 
   // Should not be assignable to wrong instruction types
-  expectTypeOf<InstructionOf_Simple<TestRegistry, "setValue">>().not.toEqualTypeOf<AddItemInstruction>();
-  expectTypeOf<InstructionOf_Simple<TestRegistry, "addItem">>().not.toEqualTypeOf<SetValueInstruction>();
+  expectTypeOf<InstructionOf<TestRegistry, "setValue">>().not.toEqualTypeOf<AddItemInstruction>();
+  expectTypeOf<InstructionOf<TestRegistry, "addItem">>().not.toEqualTypeOf<SetValueInstruction>();
 }
 
 // Test B: Type inference for execution result types
 function testExecutionResultTypeInference() {
   // ExecutionResultOf_Simple should correctly extract return types
-  expectTypeOf<ExecutionResultOf_Simple<TestRegistry, "setValue">>().toEqualTypeOf<CommandExecutionResult<void>>();
-  expectTypeOf<ExecutionResultOf_Simple<TestRegistry, "addItem">>().toEqualTypeOf<CommandExecutionResult<{ itemId: number }>>();
-  expectTypeOf<ExecutionResultOf_Simple<TestRegistry, "complexCommand">>().toEqualTypeOf<CommandExecutionResult<{ success: true; data: string }>>();
+  expectTypeOf<ExecutionResultOf<TestRegistry, "setValue">>().toEqualTypeOf<CommandExecutionResult<void>>();
+  expectTypeOf<ExecutionResultOf<TestRegistry, "addItem">>().toEqualTypeOf<CommandExecutionResult<{ itemId: number }>>();
+  expectTypeOf<ExecutionResultOf<TestRegistry, "complexCommand">>().toEqualTypeOf<CommandExecutionResult<{ success: true; data: string }>>();
 
   // SuccessfulExecutionResultOf_Simple should extract only the success case
-  expectTypeOf<SuccessfulExecutionResultOf_Simple<TestRegistry, "setValue">>().toEqualTypeOf<void>();
-  expectTypeOf<SuccessfulExecutionResultOf_Simple<TestRegistry, "addItem">>().toEqualTypeOf<{ itemId: number }>();
-  expectTypeOf<SuccessfulExecutionResultOf_Simple<TestRegistry, "complexCommand">>().toEqualTypeOf<{ success: true; data: string }>();
+  expectTypeOf<SuccessfulExecutionResultOf<TestRegistry, "setValue">>().toEqualTypeOf<void>();
+  expectTypeOf<SuccessfulExecutionResultOf<TestRegistry, "addItem">>().toEqualTypeOf<{ itemId: number }>();
+  expectTypeOf<SuccessfulExecutionResultOf<TestRegistry, "complexCommand">>().toEqualTypeOf<{ success: true; data: string }>();
 }
 
 // Test C: AnyCommandWithResult type safety
@@ -282,15 +282,15 @@ function testRegistryConstraints() {
 // Test F: Cross-command type isolation
 function testCrossCommandTypeIsolation() {
   // Verify that instruction types don't leak between commands
-  type SetValueInstr = InstructionOf_Simple<TestRegistry, "setValue">;
-  type AddItemInstr = InstructionOf_Simple<TestRegistry, "addItem">;
+  type SetValueInstr = InstructionOf<TestRegistry, "setValue">;
+  type AddItemInstr = InstructionOf<TestRegistry, "addItem">;
 
   expectTypeOf<SetValueInstr>().not.toEqualTypeOf<AddItemInstr>();
   expectTypeOf<AddItemInstr>().not.toEqualTypeOf<SetValueInstr>();
 
   // Verify that execution result types don't leak between commands
-  type SetValueResult = SuccessfulExecutionResultOf_Simple<TestRegistry, "setValue">;
-  type AddItemResult = SuccessfulExecutionResultOf_Simple<TestRegistry, "addItem">;
+  type SetValueResult = SuccessfulExecutionResultOf<TestRegistry, "setValue">;
+  type AddItemResult = SuccessfulExecutionResultOf<TestRegistry, "addItem">;
 
   expectTypeOf<SetValueResult>().not.toEqualTypeOf<AddItemResult>();
   expectTypeOf<AddItemResult>().not.toEqualTypeOf<SetValueResult>();
